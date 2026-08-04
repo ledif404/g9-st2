@@ -243,7 +243,6 @@
         color: #93c5fd;
       }
       
-      /* Dark mode contrast overrides for headings and texts */
       .glass h1, .glass h2, .glass h3, .glass strong { color: #f8fafc !important; }
       .glass label { color: #e2e8f0 !important; }
       .glass p { color: #cbd5e1 !important; }
@@ -289,7 +288,7 @@
  </head>
  <body>
 
-  <!-- FULLSCREEN BLACKOUT (Triggers on Screenshot Attempt / Tab Switching) -->
+  <!-- FULLSCREEN BLACKOUT -->
   <div id="blackout-screen" class="fixed inset-0 bg-black z-[9999] hidden flex-col items-center justify-center text-center p-6 text-white select-none">
     <div class="h-16 w-16 bg-red-600/20 text-red-500 rounded-full flex items-center justify-center mb-4 border border-red-500/40">
       <i data-lucide="shield-alert" class="h-8 w-8"></i>
@@ -320,7 +319,7 @@
 
   <div class="portal-shell">
    <main>
-    <!-- LOGIN / VERIFICATION VIEW -->
+    <!-- LOGIN VIEW -->
     <section id="login-view" class="view active px-4 py-8 sm:px-6">
      <div class="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl items-center">
       <div class="glass w-full rounded-[28px] p-6 sm:p-10">
@@ -366,11 +365,9 @@
     <section id="confirmation-view" class="view px-4 py-8 sm:px-6">
      <div class="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl items-center">
       <div class="glass w-full rounded-[28px] p-8 sm:p-12 text-center">
-       
        <div class="mb-3 inline-flex rounded-full bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
          BEFORE YOU BEGIN
        </div>
-       
        <h1 class="mb-2 text-2xl font-bold text-slate-900 dark:text-white">Please confirm before starting</h1>
        <p class="m-0 text-sm leading-relaxed text-slate-700 dark:text-slate-300 mb-6">Wait for your teacher's approval before clicking Start.</p>
        
@@ -387,7 +384,7 @@
      </div>
     </section>
 
-    <!-- MAIN EXAMINATION & CODING WORKSPACE VIEW -->
+    <!-- MAIN EXAMINATION VIEW -->
     <section id="guide-view" class="view px-3 py-3 sm:px-6 sm:py-6">
      <div id="guide-shell" class="mx-auto max-w-[1700px]">
       
@@ -443,7 +440,7 @@
        </div>
       </div>
 
-      <!-- SPACIOUS SIDE-BY-SIDE SPLIT WORKSPACE (PDF Viewer | Code Notebook) -->
+      <!-- WORKSPACE -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         <!-- LEFT PANEL: PDF Assessment Guide -->
@@ -560,7 +557,7 @@
       }
 
       /**
-       * Dynamic Watermark Renderer
+       * DYNAMIC WATERMARK RENDERER
        */
       function applyCanvasWatermark(canvas) {
         const ctx = canvas.getContext("2d");
@@ -610,6 +607,8 @@
       async function renderPdf() {
         const loader = $("pdf-loader");
         const pages = $("pdf-pages");
+        if (!loader || !pages) return;
+
         try {
           pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
           const pdf = await pdfjsLib.getDocument(PDF_FILE).promise;
@@ -649,7 +648,9 @@
           }
         } catch (error) {
           console.error("PDF Render Error:", error);
-          loader.innerHTML = '<p class="text-center font-semibold text-xs text-red-600 dark:text-red-400">Unable to load guide document. Please verify that <strong>' + PDF_FILE + '</strong> exists in the root folder.</p>';
+          if (loader) {
+            loader.innerHTML = '<p class="text-center font-semibold text-xs text-red-600 dark:text-red-400">Unable to load guide document. Please verify that <strong>' + PDF_FILE + '</strong> exists in your root folder.</p>';
+          }
         }
       }
 
@@ -670,6 +671,13 @@
       function expireAccess(isManual = false) {
         if (state.locked) return;
         state.locked = true;
+
+        // Clear persistence
+        localStorage.removeItem("exam_expires_at");
+        localStorage.removeItem("exam_student_name");
+        localStorage.removeItem("exam_student_email");
+        localStorage.removeItem("exam_student_section");
+
         clearInterval(state.timer);
         clearInterval(state.clock);
         $("pdf-pages").replaceChildren();
@@ -685,10 +693,18 @@
         showView("expired-view");
       }
 
-      function startGuide() {
+      function startGuide(isResuming = false) {
         state.examStarted = true;
         state.accessDate = new Date();
-        state.expiresAt = Date.now() + EXAM_DURATION_MS;
+        
+        if (!isResuming) {
+          state.expiresAt = Date.now() + EXAM_DURATION_MS;
+          localStorage.setItem("exam_expires_at", state.expiresAt);
+          localStorage.setItem("exam_student_name", state.studentName);
+          localStorage.setItem("exam_student_email", state.studentEmail);
+          localStorage.setItem("exam_student_section", state.studentSection);
+        }
+
         $("header-name").textContent = state.studentName;
         $("header-email").textContent = state.studentEmail;
         
@@ -701,6 +717,27 @@
         
         renderPdf();
         initPyodideEngine();
+      }
+
+      // Check for active existing session on refresh
+      function initSessionCheck() {
+        const savedExpires = localStorage.getItem("exam_expires_at");
+        const savedName = localStorage.getItem("exam_student_name");
+
+        if (savedExpires && savedName) {
+          const expiresAt = parseInt(savedExpires, 10);
+          if (Date.now() < expiresAt) {
+            state.studentName = savedName;
+            state.studentEmail = localStorage.getItem("exam_student_email") || "";
+            state.studentSection = localStorage.getItem("exam_student_section") || "";
+            state.expiresAt = expiresAt;
+            startGuide(true);
+            return;
+          } else {
+            expireAccess(false);
+            return;
+          }
+        }
       }
 
       /**
@@ -775,6 +812,15 @@
         handleUserReturn();
       });
 
+      // Reload Warning Defense
+      window.addEventListener("beforeunload", (event) => {
+        if (state.examStarted && !state.locked) {
+          event.preventDefault();
+          event.returnValue = "Assessment active. Reloading will not reset your timer, but unsaved cell progress may be lost!";
+          return event.returnValue;
+        }
+      });
+
       $("access-form").addEventListener("submit", (event) => {
         event.preventDefault();
         
@@ -794,7 +840,7 @@
       });
 
       $("start-button").addEventListener("click", () => {
-        startGuide();
+        startGuide(false);
       });
 
       $("end-assessment-btn").addEventListener("click", () => {
@@ -836,6 +882,8 @@
         document.body.innerHTML = "";
       });
 
+      // Initialize session check on load
+      initSessionCheck();
       lucide.createIcons();
     })();
 
@@ -878,14 +926,15 @@
     };
 
     /**
-     * PYTHON PYODIDE & AST TRANSFORMER COMPILER LOGIC
+     * PYTHON PYODIDE ENGINE
      */
     async function initPyodideEngine() {
       const badge = document.getElementById('status-badge');
+      if (!badge) return;
+      
       try {
         pyodide = await loadPyodide();
 
-        // Register custom input handler and AST transformer
         await pyodide.runPythonAsync(`
 import builtins
 import js
@@ -1005,7 +1054,7 @@ def transform_code(code_str):
 
     async function runCell(cellId) {
       if (!pyodide) {
-        alert("Python runtime engine is still loading. Please wait standard initialization.");
+        alert("Python runtime engine is still loading. Please wait a moment.");
         return;
       }
 
