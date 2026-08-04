@@ -5,6 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Practical Examination & Coding Portal</title>
   
+  <!-- Security Guard: Prevent direct access outside Canvas LMS -->
+  <script>
+    (function enforceCanvasOnly() {
+      const isIframed = window.self !== window.top;
+      const referrer = document.referrer.toLowerCase();
+      const isCanvasDomain = referrer.includes("instructure.com") || referrer.includes("canvas");
+
+      // Set to true to test locally or on raw GitHub link, false in production
+      const IS_DEV_MODE = false; 
+
+      if (!IS_DEV_MODE && (!isIframed || !isCanvasDomain)) {
+        document.addEventListener("DOMContentLoaded", () => {
+          document.body.innerHTML = `
+            <div style="background: #0f172a; color: #ffffff; height: 100vh; width: 100vw; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: system-ui, sans-serif; text-align: center; padding: 20px; box-sizing: border-box;">
+              <div style="background: #ef4444; color: white; border-radius: 50%; width: 64px; height: 64px; display: grid; place-items: center; font-size: 32px; font-weight: bold; margin-bottom: 16px;">✕</div>
+              <h1 style="font-size: 24px; font-weight: 700; color: #f87171; margin: 0 0 8px 0;">Access Denied</h1>
+              <p style="color: #cbd5e1; max-width: 440px; font-size: 14px; line-height: 1.6; margin: 0;">
+                This exam portal is restricted. Direct access or link sharing is prohibited. You must access this assessment inside your <strong>Canvas LMS course module</strong>.
+              </p>
+            </div>
+          `;
+        });
+      }
+    })();
+  </script>
+
   <!-- UI Frameworks & Icons -->
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -30,7 +56,6 @@
       --paper: #f8fafc;
       --glass: rgba(255, 255, 255, 0.96);
       
-      /* High Contrast Notebook Palette */
       --card-bg: #ffffff;
       --border-color: #cbd5e1;
       --text-color: #0f172a;
@@ -131,7 +156,7 @@
     .cell { background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: border-color 0.2s; }
     .cell:focus-within { border-color: #1d4ed8; }
 
-    .cell-header { background: #1e293b; color: #f8fafc; border-bottom: 1px solid #334155; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center; }
+    .cell-header { background: #1e293b; color: #f8fafc; border-bottom: 1px solid #334155; padding: 8px 14px; display: flex; justify-space-between; align-items: center; }
     .cell-controls { display: flex; gap: 6px; }
     .cell-controls button { border: none; background: transparent; padding: 4px 8px; color: #cbd5e1; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600; }
     .cell-controls button:hover { background: #334155; color: #ffffff; }
@@ -144,7 +169,7 @@
 
     .cell-editor { flex: 1; }
     
-    /* CODEMIRROR BASE STYLES (Light Mode - High Contrast) */
+    /* CODEMIRROR BASE STYLES */
     .CodeMirror { 
       height: auto; 
       min-height: 140px; 
@@ -158,7 +183,6 @@
     .CodeMirror-gutters { background: #f8fafc !important; border-right: 1px solid #e2e8f0 !important; }
     .CodeMirror-linenumber { color: #64748b !important; }
 
-    /* Light Mode Syntax Colors */
     .cm-s-neo .cm-variable, 
     .cm-s-neo .cm-variable-2, 
     .cm-s-neo .cm-property,
@@ -192,7 +216,6 @@
     .cell-output.error { background: #450a0a; color: #fca5a5; border-top-color: #991b1b; }
     .cell-output.hidden { display: none; }
 
-    /* Inline Input Prompt Styling */
     .inline-prompt-container {
       display: flex;
       align-items: center;
@@ -221,7 +244,6 @@
 
     #file-input { display: none; }
 
-    /* DARK MODE AUTOMATIC CONTRAST ADAPTATION */
     @media (prefers-color-scheme: dark) {
       .glass {
         background: rgba(15, 23, 42, 0.92);
@@ -250,10 +272,8 @@
       .text-slate-600, .text-slate-500 { color: #cbd5e1 !important; }
       .text-slate-400 { color: #94a3b8 !important; }
 
-      /* Notebook Cell Dark Mode */
       .cell { background: #0f172a; border-color: #334155; }
       
-      /* Dark Mode Code Editor Theme */
       .CodeMirror { 
         background: #0f172a !important; 
         color: #f8fafc !important; 
@@ -261,7 +281,6 @@
       .CodeMirror-gutters { background: #0f172a !important; border-right: 1px solid #334155 !important; }
       .CodeMirror-linenumber { color: #64748b !important; }
       
-      /* Dark Mode Syntax Colors */
       .cm-s-neo .cm-variable, 
       .cm-s-neo .cm-variable-2, 
       .cm-s-neo .cm-property,
@@ -280,7 +299,6 @@
       .nb-btn.btn-primary:hover { background: #1d4ed8; }
     }
 
-    /* Anti-Print Defense */
     @media print {
       body { display: none !important; }
     }
@@ -335,8 +353,9 @@
        <div class="mb-7">
         <div class="mb-3 inline-flex rounded-full bg-blue-100 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-800 dark:text-blue-300">Summative Assessment</div>
         <h1 class="mb-2 text-2xl font-bold leading-tight text-slate-900 dark:text-white">Student Verification</h1>
-        <p class="m-0 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Please enter your credentials below. Your details will be embedded as a secure watermark into your examination document.</p>
+        <p class="m-0 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Please enter your credentials and exam PIN. Your details will be embedded as a secure watermark into your examination document.</p>
        </div>
+       
        <form id="access-form" novalidate>
         <div class="mb-4">
           <label class="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200" for="student-name">Full Name</label> 
@@ -346,10 +365,17 @@
           <label class="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200" for="student-email">School Email Address</label> 
           <input id="student-email" class="form-field" type="email" placeholder="e.g. j.delacruz@dlszobel.edu.ph" autocomplete="email" required>
         </div>
-        <div class="mb-5">
+        <div class="mb-4">
           <label class="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200" for="student-section">Grade & Section</label> 
           <input id="student-section" class="form-field" type="text" placeholder="e.g. 9-A" autocomplete="organization" required>
         </div>
+        
+        <!-- NEW ASSESSMENT PIN FIELD -->
+        <div class="mb-5">
+          <label class="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200" for="exam-pin">Assessment Access PIN</label> 
+          <input id="exam-pin" class="form-field font-mono" type="password" placeholder="Enter PIN given by teacher" autocomplete="off" required>
+        </div>
+
         <p id="access-status" class="mb-4 min-h-[1.25rem] text-sm font-semibold" aria-live="polite"></p>
         <button class="access-button w-full mb-4" type="submit">Verify Credentials</button>
        </form>
@@ -517,6 +543,7 @@
 
       const EXAM_DURATION_MS = 40 * 60 * 1000;
       const PDF_FILE = "T1 CT9 ST2_2627.pdf";
+      const REQUIRED_PIN = "107908060131"; // REQUIRED TEACHER PIN
 
       const state = { 
         studentName: "", 
@@ -556,9 +583,6 @@
         target.className = "mb-4 min-h-[1.25rem] text-sm font-semibold " + (isError ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400");
       }
 
-      /**
-       * DYNAMIC WATERMARK RENDERER
-       */
       function applyCanvasWatermark(canvas) {
         const ctx = canvas.getContext("2d");
         ctx.save();
@@ -672,7 +696,6 @@
         if (state.locked) return;
         state.locked = true;
 
-        // Clear persistence
         localStorage.removeItem("exam_expires_at");
         localStorage.removeItem("exam_student_name");
         localStorage.removeItem("exam_student_email");
@@ -719,7 +742,6 @@
         initPyodideEngine();
       }
 
-      // Check for active existing session on refresh
       function initSessionCheck() {
         const savedExpires = localStorage.getItem("exam_expires_at");
         const savedName = localStorage.getItem("exam_student_name");
@@ -740,9 +762,6 @@
         }
       }
 
-      /**
-       * TAB EXIT & SECURITY HANDLERS
-       */
       function handleUserExit() {
         if (!state.examStarted || state.locked || state.isFilePickerOpen) return;
         $("blackout-screen").classList.remove("hidden");
@@ -812,7 +831,6 @@
         handleUserReturn();
       });
 
-      // Reload Warning Defense
       window.addEventListener("beforeunload", (event) => {
         if (state.examStarted && !state.locked) {
           event.preventDefault();
@@ -821,16 +839,20 @@
         }
       });
 
+      // FORM SUBMISSION VALIDATION WITH PIN VERIFICATION
       $("access-form").addEventListener("submit", (event) => {
         event.preventDefault();
         
         const name = $("student-name").value.trim();
         const email = $("student-email").value.trim();
         const section = $("student-section").value.trim();
+        const pin = $("exam-pin").value.trim();
 
         if (!name) return setAccessMessage("Please enter your full name.");
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setAccessMessage("Please enter a valid school email address.");
         if (!section) return setAccessMessage("Please enter your section.");
+        if (!pin) return setAccessMessage("Please enter the Assessment PIN.");
+        if (pin !== REQUIRED_PIN) return setAccessMessage("Invalid Assessment PIN. Please ask your teacher for the correct PIN.");
 
         state.studentName = name;
         state.studentEmail = email;
@@ -882,14 +904,10 @@
         document.body.innerHTML = "";
       });
 
-      // Initialize session check on load
       initSessionCheck();
       lucide.createIcons();
     })();
 
-    /**
-     * INLINE NON-BLOCKING INPUT PROMPT GENERATOR
-     */
     window.promptInline = function(promptText, cellId) {
       return new Promise((resolve) => {
         const outputEl = document.getElementById(`${cellId}-output`);
@@ -925,9 +943,6 @@
       });
     };
 
-    /**
-     * PYTHON PYODIDE ENGINE
-     */
     async function initPyodideEngine() {
       const badge = document.getElementById('status-badge');
       if (!badge) return;
