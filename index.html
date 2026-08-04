@@ -372,8 +372,16 @@
         
         <!-- NEW ASSESSMENT PIN FIELD -->
         <div class="mb-5">
-          <label class="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200" for="exam-pin">Assessment Access PIN</label> 
-          <input id="exam-pin" class="form-field font-mono" type="password" placeholder="Enter PIN given by teacher" autocomplete="off" required>
+           <label class="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200" for="exam-pin">Assessment Access PIN</label> 
+           <input 
+             id="exam-pin" 
+             class="form-field font-mono" 
+             type="text" 
+             inputmode="numeric" 
+             placeholder="Enter PIN given by teacher" 
+             autocomplete="one-time-code" 
+             style="-webkit-text-security: disc;" 
+             required>
         </div>
 
         <p id="access-status" class="mb-4 min-h-[1.25rem] text-sm font-semibold" aria-live="polite"></p>
